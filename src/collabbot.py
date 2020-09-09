@@ -2,12 +2,13 @@ import traceback
 
 from src.tools.funcblocker import funcblocker
 class CollabBot:
-    def __init__(self, dbconn, client, config):
+    def __init__(self, dbconn, client, config, git):
         self.command_on_message_list = {}
         # All necessary data
         self.conn = dbconn
         self.client = client
         self.config = config
+        self.git = git
 
     async def send_message(self, message_info):
         """

@@ -32,7 +32,7 @@ def fetch_times(conn, name):
         return FAIL
 
 
-def insert_time(conn, member_id, map_name: str, map_time: str):
+def insert_time(conn, member_id, map_name: str, map_time: str, desc: str):
     """
         Insert an IL time into the database
         args:
@@ -43,7 +43,7 @@ def insert_time(conn, member_id, map_name: str, map_time: str):
     # Check if time exists
     try:
         cur = conn.cursor()
-        cur.execute("SELECT * FROM Times WHERE id = '%s' AND map = %s;", (member_id, map_name))
+        cur.execute("SELECT * FROM Times WHERE id = '%s' AND map LIKE %s;", (member_id, map_name))
         result = cur.fetchone()
         time_exists = result is not None
     except Exception as e:
@@ -58,7 +58,7 @@ def insert_time(conn, member_id, map_name: str, map_time: str):
             return 2  # Time is worse than previous time
         try:
             cur = conn.cursor()
-            cur.execute("UPDATE Times SET time = %s WHERE id = '%s' AND map = %s;", (map_time, member_id, map_name))
+            cur.execute("UPDATE Times SET time = %s WHERE id = '%s' AND map = %s;", (map_time, member_id, map_name, desc))
             conn.commit()
         except Exception as e:
             print(e)
@@ -67,36 +67,10 @@ def insert_time(conn, member_id, map_name: str, map_time: str):
     else:
         try:
             cur = conn.cursor()
-            cur.execute("INSERT INTO Times (id, map, time) VALUES (%s, %s, %s);", (member_id, map_name, map_time))
+            cur.execute("INSERT INTO Times (id, map, time, description) VALUES (%s, %s, %s, %s);", (member_id, map_name, map_time, desc))
             conn.commit()
         except Exception as e:
             print(e)
             conn.rollback()
             return FAIL
     return SUCCESS
-
-def get_counter(conn):
-    try:
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM Bugcounter")
-        return cur.fetchone()[0]
-    except Exception as e:
-        print(e)
-        conn.rollback()
-        return FAIL
-
-def increment_counter(conn):
-    try:
-        cur = conn.cursor()
-        cur.execute("UPDATE Bugcounter SET count=count+1")
-        conn.commit()
-        return SUCCESS
-    except Exception as e:
-        print(e)
-        conn.rollback()
-        return FAIL
-
-def get_and_increment_counter(conn):
-    res = get_counter(conn)
-    increment_counter(conn)
-    return res

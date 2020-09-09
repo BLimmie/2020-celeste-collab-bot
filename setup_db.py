@@ -13,20 +13,9 @@ cur.execute("""
     CREATE TABLE Times (
         id VARCHAR(20) NOT NULL,
         map TEXT NOT NULL,
-        time VARCHAR(15) NOT NULL
+        time VARCHAR(15) NOT NULL,
+        description TEXT NOT NULL
     );
     """)
 
-conn.commit()
-
-cur.execute("""Drop table Bugcounter""")
-
-cur.execute("""
-    CREATE TABLE Bugcounter (
-        count INT
-    );
-    """)
-cur.execute("""
-    INSERT INTO Bugcounter (count) VALUES (1)
-    """)
 conn.commit()

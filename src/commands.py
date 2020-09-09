@@ -1,8 +1,8 @@
 from datetime import time
 
-from src.modules.db_helper import insert_time, fetch_member, fetch_times, get_and_increment_counter
+from src.modules.db_helper import insert_time, fetch_member, fetch_times
 from src.modules.discord_helper import try_send, find_member
-from src.modules.map_finder import find_map
+from src.modules.map_finder import find_map, find_label
 from src.tools.message_return import message_data
 
 
@@ -43,15 +43,25 @@ def init(bot):
                         "inline": False
                     },
                     {
-                        "name": "$bug [Description]",
-                        "value": "Submit a bug report",
+                        "name": "$bug [Label];[Summary];[Description]",
+                        "value": "Submit a bug report. $bughelp for more details. Semicolons let the bot know the difference between fields because the creator of this bot was too lazy to write a regex for this.",
+                        "inline": False
+                    },
+                    {
+                        "name": "$bughelp",
+                        "value": "Help for sumbitting a bug report",
+                        "inline": False
+                    },
+                    {
+                        "name": "$buglist",
+                        "value": "Link to current list of known bugs",
                         "inline": False
                     }
                 ]
             }
         )
 
-    async def verification(message, conn, map_name, member, map_time):
+    async def verification(message, conn, map_name, member, map_time, desc):
         if conn is None:
             return
         try:
@@ -64,11 +74,11 @@ def init(bot):
 
         def check(reaction, user):
             return reaction.message.id == message.id and not user.bot and (
-                        str(reaction.emoji) == '✅' or str(reaction.emoji) == '❌')
+                    str(reaction.emoji) == '✅' or str(reaction.emoji) == '❌')
 
         reaction, user = await bot.client.wait_for("reaction_add", check=check)
         if str(reaction.emoji) == '✅':
-            insert_time(conn, member.id, map_name, map_time)
+            insert_time(conn, member.id, map_name, map_time, desc)
             await try_send(member, f"Your run for {map_name} has been verified")
         else:
             await try_send(member,
@@ -94,7 +104,7 @@ def init(bot):
                     "Invalid time format",
                     args=[None, None, None, None]
                 )
-            map_name = find_map(bot.config["maps"], split_content[0][split_content[0].find(' ') + 1:].strip())
+            map_name, _ = find_map(bot.config["maps"], split_content[0][split_content[0].find(' ') + 1:].strip())
             return message_data(
                 bot.config["verification_channel"],
                 message="",
@@ -115,7 +125,7 @@ def init(bot):
                         }
                     ]
                 },
-                args=[bot.conn, map_name, user, map_time]
+                args=[bot.conn, map_name, user, map_time, split_content[2]]
             )
 
     @bot.command_on_message()
@@ -158,7 +168,7 @@ def init(bot):
                 "value": f"{map_time}",
                 "inline": False
             }
-            for (id, _, map_time) in times
+            for (id, _, map_time, desc) in times
         ]
         return message_data(
             message.channel,
@@ -180,10 +190,10 @@ def init(bot):
         fields = [
             {
                 "name": f"{map_name}",
-                "value": f"{map_time}",
+                "value": f"{map_time} {desc}",
                 "inline": False
             }
-            for (_, map_name, map_time) in times
+            for (_, map_name, map_time, desc) in times
         ]
         return message_data(
             message.channel,
@@ -197,23 +207,104 @@ def init(bot):
         )
 
     @bot.command_on_message()
+    def bughelp(message):
+        return message_data(
+            message.channel,
+            message="",
+            embed={
+                "title": "Bug Reporting Help",
+                "description": "$bug [Label];[Summary];[Description]",
+                "color": 53380,
+                "fields": [
+                    {
+                        "name": "Valid Labels",
+                        "value": "Bug, Gameplay, Visual, Speedrun, Other",
+                        "inline": False
+                    },
+                    {
+                        "name": "Bug",
+                        "value": "Bugs in the Spring Collab code mod",
+                        "inline": False
+                    },
+                    {
+                        "name": "Gameplay",
+                        "value": "Fixes to gameplay",
+                        "inline": False
+                    },
+                    {
+                        "name": "Visual",
+                        "value": "Visual bugs/inconsistencies",
+                        "inline": False
+                    },
+                    {
+                        "name": "Speedrun",
+                        "value": "Nerfs/buffs to speed berries",
+                        "inline": False
+                    },
+                    {
+                        "name": "Summary",
+                        "value": "A short summary of the bug found (please avoid semicolons)",
+                        "inline": False
+                    },
+                    {
+                        "name": "Description",
+                        "value": "Describe in detail what bug you found, or a suggested fix. Images/Videos should be "
+                                 "uploaded to a hosting service such as Imgur/Streamable and linked in the "
+                                 "description.",
+                        "inline": False
+                    }
+                ]
+            }
+        )
+
+    @bot.command_on_message()
     def bug(message):
         content = message.content
         submitter = message.author.display_name
         info = content[content.find(' ') + 1:].strip()
+        split_content = info.split(';')
+        if len(split_content) != 3:
+            return message_data(
+                message.channel,
+                "Usage: $bug [Label];[Summary];[Description]",
+                args=[None, None, None, None]
+            )
+        label = split_content[0].strip()
+        summary = split_content[1].strip()
+        desc = split_content[2].strip() + f"\nSubmitted by {submitter}"
+        repo = bot.git.get_repo("iamdadbod/SpringCollab2020Issues")
+        git_label = repo.get_label(find_label(label))
+        issue = repo.create_issue(summary, body=desc, labels = [git_label])
+        url = issue.url
         return message_data(
-            bot.config["bug_report_channel"],
+            message.channel,
             message="",
             embed={
-                "title": f"Bug #{get_and_increment_counter(bot.conn)}",
-                "description": f"Reported by {submitter}",
+                "title": "Bug Submitted",
                 "color": 53380,
                 "fields": [
                     {
-                        "name": "Description",
-                        "value": info,
+                        "name": summary,
+                        "value": desc,
+                        "inline": False
+                    },
+                    {
+                        "name": "URL",
+                        "value": url,
                         "inline": False
                     }
                 ]
+            }
+        )
+
+    @bot.command_on_message()
+    def buglist(message):
+        return message_data(
+            message.channel,
+            message="",
+            embed={
+                "title": "List of Issues",
+                "description": "https://github.com/iamdadbod/SpringCollab2020Issues/issues",
+                "color": 53380,
             }
         )
