@@ -275,7 +275,7 @@ def init(bot):
         repo = bot.git.get_repo("iamdadbod/SpringCollab2020Issues")
         git_label = repo.get_label(find_label(label))
         issue = repo.create_issue(summary, body=desc, labels = [git_label])
-        url = issue.url
+        url = issue.html_url
         return message_data(
             message.channel,
             message="",
