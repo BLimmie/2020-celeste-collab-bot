@@ -7,7 +7,7 @@ def find_closest(search, target):
     max_score = max(similarity)
     if len([i for i in similarity if similarity == max_score]) > 1:
         return None, None
-
+    print(search, similarity)
     for m, score in zip(search, similarity):
         if score == max_score:
             return m, max_score
