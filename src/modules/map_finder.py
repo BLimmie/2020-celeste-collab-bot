@@ -16,7 +16,7 @@ def find_map (maps, map_name):
     return find_closest(maps, map_name)
 
 def find_label(label):
-    labels = ["Bug", "Gameplay", "Speedrun", "Visual", "Other"]
+    labels = ["Bug", "Gameplay", "Speedrun", "Visual", "Accessibility", "Other"]
     l, score = find_closest(labels, label)
     if score < 0.5:
         return "Other"
