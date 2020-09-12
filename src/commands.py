@@ -218,7 +218,7 @@ def init(bot):
                 "fields": [
                     {
                         "name": "Valid Labels",
-                        "value": "Bug, Gameplay, Visual, Speedrun, Other",
+                        "value": "Bug, Gameplay, Visual, Speedrun, Accessibility, Other",
                         "inline": False
                     },
                     {
@@ -239,6 +239,11 @@ def init(bot):
                     {
                         "name": "Speedrun",
                         "value": "Nerfs/buffs to speed berries",
+                        "inline": False
+                    },
+                    {
+                        "name": "Accessibility",
+                        "value": "Fixes to anything that make a map inaccessible to a certain group of people",
                         "inline": False
                     },
                     {
